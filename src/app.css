@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+@theme {
+	--font-headline: "Anton", sans-serif;
+	--color-cream: #f7f3ec;
+	--color-ink: #1a1a1a;
+	--color-loss: #c53030;
+	--color-gold: #b7911a;
+	--color-house: #2d8a4e;
+	--color-muted: #9a9488;
+	--color-divider: #1a1a1a;
+	--color-border: #d6d0c6;
+}
+
+html {
+	scroll-behavior: auto;
+}
+
+body {
+	background-color: var(--color-cream);
+	color: var(--color-ink);
+	font-family: system-ui, -apple-system, sans-serif;
+	-webkit-font-smoothing: antialiased;
+}
+
+::selection {
+	background-color: var(--color-ink);
+	color: var(--color-cream);
+}
+
+.font-headline {
+	font-family: var(--font-headline);
+	text-transform: uppercase;
+	line-height: 0.95;
+	letter-spacing: -0.01em;
+}
+
+.divider {
+	height: 3px;
+	background: var(--color-ink);
+	border: none;
+}
+
+.divider-thin {
+	height: 1px;
+	background: var(--color-border);
+	border: none;
+}
+
+.stat-huge {
+	font-family: ui-monospace, monospace;
+	font-size: clamp(3rem, 10vw, 7rem);
+	font-weight: 700;
+	line-height: 1;
+	letter-spacing: -0.03em;
+}
+
+.sim-box {
+	border: 1px solid var(--color-border);
+	padding: 1.25rem;
+	background: color-mix(in srgb, var(--color-cream) 50%, white 50%);
+}
+
+@media (min-width: 768px) {
+	.sim-box {
+		padding: 1.75rem;
+	}
+}
+
+/* ── Reusable animation keyframes ──────────────────────────────────── */
+
+@keyframes shake {
+	0%, 100% { transform: translate(0, 0); }
+	10%, 50%, 90% { transform: translate(-5px, 0); }
+	30%, 70% { transform: translate(5px, 0); }
+}
+.shake { animation: shake 0.4s ease-in-out; }
+
+.flash-red {
+	position: relative;
+}
+.flash-red::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: rgba(200, 30, 30, 0.25);
+	pointer-events: none;
+	animation: flash-fade 0.5s ease-out forwards;
+	border-radius: inherit;
+}
+@keyframes flash-fade {
+	0% { opacity: 1; }
+	100% { opacity: 0; }
+}
+
+@keyframes draw-in {
+	from { stroke-dashoffset: 1; }
+	to { stroke-dashoffset: 0; }
+}
+.chart-draw {
+	stroke-dasharray: 1;
+	stroke-dashoffset: 1;
+	animation: draw-in 0.8s ease-out forwards;
+}
+
+@keyframes ghost-pop {
+	0% { transform: scaleY(1); }
+	50% { transform: scaleY(2); }
+	100% { transform: scaleY(1); }
+}
+
+/* ── Accessibility: respect reduced motion ─────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}
