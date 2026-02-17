@@ -121,6 +121,7 @@
 	}
 
 	function skipAnim() {
+		play('click');
 		if (!simResult || !simRunning) return;
 		finishSim(simResult);
 	}
@@ -374,7 +375,7 @@
 			<div class="flex flex-wrap gap-2 mb-5">
 				{#each POPULATIONS as pop, i}
 					<button
-						onclick={() => popLevel = i}
+						onclick={() => { play('click'); popLevel = i; }}
 						class="terminal-btn"
 						class:terminal-btn-active={popLevel === i}
 					>

@@ -2,6 +2,7 @@
 	import { inview } from '$lib/utils/intersection';
 	import { moneyWhole, pct } from '$lib/utils/format';
 	import { simulateWalkAwayBatch, type WalkAwayResult } from '$lib/utils/random';
+	import { play } from '$lib/utils/audio';
 
 	const BANKROLL = 200;
 	const BET = 10;
@@ -22,6 +23,7 @@
 	);
 
 	function run() {
+		play('click');
 		running = true;
 		setTimeout(() => {
 			result = simulateWalkAwayBatch(SESSIONS, BANKROLL, selectedTarget, BET);
@@ -30,6 +32,7 @@
 	}
 
 	function pick(value: number) {
+		play('click');
 		selectedTarget = value;
 		result = null;
 	}

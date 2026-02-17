@@ -70,6 +70,7 @@
 	}
 
 	function scratchAll() {
+		play('chipDown');
 		let delay = 0;
 		for (let i = 0; i < tickets.length; i++) {
 			if (!tickets[i].scratched) {
@@ -116,10 +117,11 @@
 			t.scratched = true;
 			t.prize = scratchTicketPrize();
 		}
-		if (balance < TICKET_COST) triggerShake();
+		if (balance < TICKET_COST) { play('bust'); triggerShake(); }
 	}
 
 	function reset() {
+		play('click');
 		tickets = makeTickets();
 		balance = START;
 		totalSpent = 0;
@@ -129,6 +131,7 @@
 	}
 
 	function resetAll() {
+		play('click');
 		reset();
 		lifetimeSpent = 0;
 		lifetimeWon = 0;
@@ -443,6 +446,48 @@
 			</div>
 			<div class="text-xs text-muted mt-3">
 				Top: total spent. <span class="text-loss">Bottom: net loss</span> at 62% return rate. All at $2 per ticket.
+			</div>
+		</div>
+
+		<!-- Invest instead comparison -->
+		<div use:inview class="fade-up mt-8 scratch-box">
+			<div class="scratch-label mb-3">Or invest it instead</div>
+			<p class="text-sm text-muted mb-3">
+				Same money, same pace, into an S&P 500 index fund instead of scratch tickets.
+			</p>
+			<div class="overflow-x-auto">
+				<table class="w-full text-sm">
+					<thead>
+						<tr class="border-b border-border text-left">
+							<th class="pb-2 pr-4 text-xs uppercase tracking-wide text-muted font-normal">Pace</th>
+							<th class="pb-2 pr-4 text-xs uppercase tracking-wide text-muted font-normal text-right">1 Year</th>
+							<th class="pb-2 pr-4 text-xs uppercase tracking-wide text-muted font-normal text-right">5 Years</th>
+							<th class="pb-2 pr-4 text-xs uppercase tracking-wide text-muted font-normal text-right">10 Years</th>
+							<th class="pb-2 text-xs uppercase tracking-wide text-muted font-normal text-right">30 Years</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each [
+							{ label: '1 per week', values: [104, 635, 1657, 17127] },
+							{ label: '3 per week', values: [312, 1904, 4972, 51382] },
+							{ label: '1 per day', values: [730, 4457, 11627, 120172] },
+						] as row}
+							<tr class="border-b border-border/50">
+								<td class="py-2 pr-4 text-muted">{row.label}</td>
+								{#each row.values as v}
+									<td class="py-2 pr-4 text-right">
+										<div class="font-mono font-bold text-house">{money(v)}</div>
+									</td>
+								{/each}
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+			<div class="text-xs text-muted mt-3">
+				Based on S&P 500 historical average ~10%/year (nominal). 3 tickets/week for 30 years:
+				<span class="text-loss font-mono font-bold">{@html '&minus;'}$3,557</span> on scratchers vs
+				<span class="text-house font-mono font-bold">$51,382</span> invested.
 			</div>
 		</div>
 

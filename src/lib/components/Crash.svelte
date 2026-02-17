@@ -31,6 +31,7 @@
 	let stratResults: StratResult[] | null = $state(null);
 
 	function runStrategyComparison() {
+		play('click');
 		const SESSIONS = 1000;
 		const ROUNDS = 500;
 		stratResults = STRATEGIES.map(s => {
@@ -65,6 +66,8 @@
 	let lifetimeWagered = $state(0);
 	let lifetimeNet = $state(0);
 	let lifetimeSessionsUp = $state(0);
+	let lifetimeCashouts = $state(0);
+	let lifetimeBestCashout = $state(0);
 
 	// Visual effects state
 	let shaking = $state(false);
@@ -131,6 +134,8 @@
 		if (!running || crashed || cashedOut) return;
 		cashedOut = true;
 		running = false;
+		lifetimeCashouts++;
+		if (currentMultiplier > lifetimeBestCashout) lifetimeBestCashout = currentMultiplier;
 		play('cashout');
 		const winnings = BET * (currentMultiplier - 1);
 		balance += winnings;
@@ -181,6 +186,8 @@
 				totalRounds++;
 				lifetimeRounds++;
 				lifetimeWagered += BET;
+				lifetimeCashouts++;
+				if (cashoutTarget > lifetimeBestCashout) lifetimeBestCashout = cashoutTarget;
 				history = [...history, balance];
 				recentCrashes = [{ value: target, won: true }, ...recentCrashes.slice(0, 19)];
 				if (animInterval) clearInterval(animInterval);
@@ -221,6 +228,8 @@
 			const crash = crashPoint();
 			if (crash >= cashoutTarget) {
 				balance += BET * (cashoutTarget - 1);
+				lifetimeCashouts++;
+				if (cashoutTarget > lifetimeBestCashout) lifetimeBestCashout = cashoutTarget;
 			} else {
 				balance -= BET;
 			}
@@ -239,11 +248,18 @@
 		play('chipDown');
 		const oldBalance = balance;
 		const balances = simulateCrashSession(balance, BET, cashoutTarget, n);
+		let instantCashouts = 0;
 		for (let i = 0; i < balances.length; i++) {
 			totalRounds++;
 			lifetimeRounds++;
 			lifetimeWagered += BET;
+			const prevBal = i === 0 ? oldBalance : balances[i - 1];
+			if (balances[i] > prevBal) {
+				instantCashouts++;
+			}
 		}
+		lifetimeCashouts += instantCashouts;
+		if (cashoutTarget > lifetimeBestCashout && instantCashouts > 0) lifetimeBestCashout = cashoutTarget;
 		if (balances.length > 0) {
 			balance = balances[balances.length - 1];
 		}
@@ -259,6 +275,7 @@
 	}
 
 	function newSession() {
+		play('click');
 		const sessionNet = balance - START;
 		lifetimeNet += sessionNet;
 		lifetimeSessions++;
@@ -276,6 +293,7 @@
 	}
 
 	function resetAll() {
+		play('click');
 		balance = START;
 		history = [START];
 		totalRounds = 0;
@@ -290,6 +308,8 @@
 		lifetimeWagered = 0;
 		lifetimeNet = 0;
 		lifetimeSessionsUp = 0;
+		lifetimeCashouts = 0;
+		lifetimeBestCashout = 0;
 		if (animInterval) clearInterval(animInterval);
 		animInterval = null;
 	}
@@ -521,7 +541,7 @@
 				<div class="flex items-center gap-1">
 					{#each [1.1, 1.5, 2.0, 3.0, 5.0, 10.0] as target}
 						<button
-							onclick={() => { if (!running) cashoutTarget = target; }}
+							onclick={() => { if (!running) { play('click'); cashoutTarget = target; } }}
 							class="crash-target-btn"
 							class:active={cashoutTarget === target}
 							disabled={running}
@@ -595,6 +615,12 @@
 						class:text-[#4aeab0]={pl > 0}
 						class:text-[#ddd]={pl === 0}>
 						{pl >= 0 ? '+' : ''}{money(pl)}
+					</div>
+				</div>
+				<div>
+					<div class="text-xs text-[#8aa] uppercase tracking-wide">Target</div>
+					<div class="font-mono text-2xl font-bold text-[#4aeab0]">
+						{cashoutTarget.toFixed(2)}×
 					</div>
 				</div>
 			</div>
@@ -676,8 +702,12 @@
 					<div class="text-xs uppercase tracking-widest text-[#8aa] mb-3">Lifetime (across {lifetimeSessions} session{lifetimeSessions === 1 ? '' : 's'})</div>
 					<div class="flex flex-wrap gap-6 text-sm text-[#bcc]">
 						<div>
-							<span class="text-[#8aa]">Total wagered:</span>
-							<span class="font-mono font-bold ml-1">{money(lifetimeWagered)}</span>
+							<span class="text-[#8aa]">Rounds:</span>
+							<span class="font-mono font-bold ml-1">{lifetimeRounds}</span>
+						</div>
+						<div>
+							<span class="text-[#8aa]">Best cashout:</span>
+							<span class="font-mono font-bold ml-1">{lifetimeBestCashout > 0 ? lifetimeBestCashout.toFixed(2) + '×' : '—'}</span>
 						</div>
 						<div>
 							<span class="text-[#8aa]">Net:</span>
@@ -688,8 +718,8 @@
 							</span>
 						</div>
 						<div>
-							<span class="text-[#8aa]">Sessions up:</span>
-							<span class="font-mono font-bold ml-1">{lifetimeSessionsUp}/{lifetimeSessions}</span>
+							<span class="text-[#8aa]">Win rate:</span>
+							<span class="font-mono font-bold ml-1">{lifetimeRounds > 0 ? (lifetimeCashouts / lifetimeRounds * 100).toFixed(1) + '%' : '—'}</span>
 						</div>
 					</div>
 				</div>

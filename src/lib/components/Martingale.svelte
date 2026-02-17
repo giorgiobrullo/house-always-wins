@@ -63,6 +63,7 @@
 	}
 
 	function clearSim() {
+		play('click');
 		simResult = null;
 		simAnimIndex = 0;
 		simAnimDone = false;

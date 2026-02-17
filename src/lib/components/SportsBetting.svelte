@@ -41,6 +41,8 @@
 	let lifetimeWagered = $state(0);
 	let lifetimeNet = $state(0);
 	let lifetimeSessionsUp = $state(0);
+	let lifetimeWins = $state(0);
+	let lifetimeLosses = $state(0);
 
 	// W-L record tracking
 	let sessionWins = $state(0);
@@ -62,8 +64,8 @@
 		// Count wins/losses from consecutive balance diffs
 		let prev = oldBalance;
 		for (const b of balances) {
-			if (b > prev) sessionWins++;
-			else sessionLosses++;
+			if (b > prev) { sessionWins++; lifetimeWins++; }
+			else { sessionLosses++; lifetimeLosses++; }
 			prev = b;
 		}
 
@@ -76,10 +78,11 @@
 		animating = true;
 		animatedBalance = oldBalance;
 		countTo(oldBalance, balance, 600, (v) => { animatedBalance = v; }, () => { animating = false; });
-		if (balance < BET) triggerShake();
+		if (balance < BET) { play('bust'); triggerShake(); }
 	}
 
 	function newSession() {
+		play('click');
 		const sessionNet = balance - START;
 		lifetimeNet += sessionNet;
 		lifetimeSessions++;
@@ -93,6 +96,7 @@
 	}
 
 	function resetAll() {
+		play('click');
 		balance = START;
 		history = [START];
 		totalBets = 0;
@@ -101,6 +105,8 @@
 		lifetimeWagered = 0;
 		lifetimeNet = 0;
 		lifetimeSessionsUp = 0;
+		lifetimeWins = 0;
+		lifetimeLosses = 0;
 		multiResult = null;
 		sessionHistories = [];
 		sessionWins = 0;
@@ -350,7 +356,7 @@
 			<div class="flex flex-wrap items-center gap-2 mb-5">
 				{#each WIN_RATES as wr}
 					<button
-						onclick={() => { winRate = wr.rate; }}
+						onclick={() => { play('click'); winRate = wr.rate; }}
 						class="rate-btn"
 						class:active={winRate === wr.rate}
 					>
@@ -478,8 +484,24 @@
 					<div class="text-xs uppercase tracking-widest text-muted mb-3">Lifetime (across {lifetimeSessions} session{lifetimeSessions === 1 ? '' : 's'})</div>
 					<div class="flex flex-wrap gap-6 text-sm">
 						<div>
-							<span class="text-muted">Total wagered:</span>
-							<span class="font-mono font-bold ml-1">{money(lifetimeWagered)}</span>
+							<span class="text-muted">Record:</span>
+							<span class="font-mono font-bold ml-1">
+								<span class="text-house">{lifetimeWins}W</span>
+								<span class="text-muted">–</span>
+								<span class="text-loss">{lifetimeLosses}L</span>
+							</span>
+						</div>
+						<div>
+							<span class="text-muted">Win rate:</span>
+							{#if lifetimeWins + lifetimeLosses > 0}
+								<span class="font-mono font-bold ml-1"
+									class:text-loss={(lifetimeWins / (lifetimeWins + lifetimeLosses)) * 100 < 52.4}
+									class:text-house={(lifetimeWins / (lifetimeWins + lifetimeLosses)) * 100 >= 52.4}>
+									{((lifetimeWins / (lifetimeWins + lifetimeLosses)) * 100).toFixed(1)}%
+								</span>
+							{:else}
+								<span class="font-mono font-bold ml-1 text-muted">—</span>
+							{/if}
 						</div>
 						<div>
 							<span class="text-muted">Net:</span>
@@ -490,7 +512,7 @@
 							</span>
 						</div>
 						<div>
-							<span class="text-muted">Sessions up:</span>
+							<span class="text-muted">Profitable seasons:</span>
 							<span class="font-mono font-bold ml-1">{lifetimeSessionsUp}/{lifetimeSessions}</span>
 						</div>
 					</div>

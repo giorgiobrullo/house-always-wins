@@ -143,6 +143,7 @@
 	}
 
 	function runMultiSession() {
+		play('click');
 		const TOTAL = 1000;
 		const CHARTED = 100;
 		const SPINS = 1000;
@@ -162,6 +163,7 @@
 	}
 
 	function newSession() {
+		play('click');
 		const sessionNet = balance - START;
 		lifetimeNet += sessionNet;
 		lifetimeSessions++;
@@ -176,6 +178,7 @@
 	}
 
 	function resetAll() {
+		play('click');
 		balance = START;
 		history = [START];
 		lastResult = null;

@@ -132,8 +132,8 @@
 	let lifetimeNet = $state(0);
 	let lifetimeSessionsUp = $state(0);
 
-	let multiResult: { wins: number; losses: number; busts: number; avgFinal: number } | null = $state(null);
-	let sessionHistories: number[][] = $state([]);
+	let expectedPL = $derived(-(totalHands_ * BET * HOUSE_EDGE));
+	let lifetimeExpected = $derived(-(lifetimeHands * BET * HOUSE_EDGE));
 
 	const GHOST_COUNT = 100;
 	let ghostBalances: number[] = $state(Array.from({ length: GHOST_COUNT }, () => START));
@@ -235,26 +235,8 @@
 		if (balance < BET) triggerShake();
 	}
 
-	function runMultiSession() {
-		const TOTAL = 1000;
-		const CHARTED = 100;
-		const HANDS = 200;
-		const histories: number[][] = [];
-		let wins = 0, losses = 0, busts = 0, totalFinal = 0;
-		for (let s = 0; s < TOTAL; s++) {
-			const balances = simulateBlackjackSession(START, BET, HANDS);
-			const final_ = balances.length > 0 ? balances[balances.length - 1] : START;
-			if (s < CHARTED) histories.push([START, ...balances]);
-			if (final_ > START) wins++;
-			else if (final_ < BET) busts++;
-			else losses++;
-			totalFinal += final_;
-		}
-		multiResult = { wins, losses, busts, avgFinal: totalFinal / TOTAL };
-		sessionHistories = histories;
-	}
-
 	function newSession() {
+		play('click');
 		const sessionNet = balance - START;
 		lifetimeNet += sessionNet;
 		lifetimeSessions++;
@@ -268,6 +250,7 @@
 	}
 
 	function resetAll() {
+		play('click');
 		balance = START;
 		history = [START];
 		lastHand = null;
@@ -278,8 +261,6 @@
 		lifetimeWagered = 0;
 		lifetimeNet = 0;
 		lifetimeSessionsUp = 0;
-		multiResult = null;
-		sessionHistories = [];
 		resetGhosts();
 	}
 
@@ -360,37 +341,6 @@
 		const min = Math.min(0, ...history);
 		const range = max - min || 1;
 		return 100 - ((START - min) / range) * 100;
-	});
-
-	let multiChartData = $derived.by(() => {
-		if (sessionHistories.length === 0) return null;
-		const allBalances = sessionHistories.flat();
-		const max = Math.max(START * 2, ...allBalances);
-		const range = max;
-		const maxLen = Math.max(...sessionHistories.map(h => h.length));
-		const toY = (bal: number) => 100 - (bal / range) * 100;
-		const startY = toY(START);
-		const zeroHand = START / LOSS_PER_HAND;
-		let evLine: string;
-		if (maxLen - 1 <= zeroHand) {
-			evLine = `M0,${startY} L100,${toY(START - LOSS_PER_HAND * (maxLen - 1))}`;
-		} else {
-			const zeroX = (zeroHand / (maxLen - 1)) * 100;
-			evLine = `M0,${startY} L${zeroX},${toY(0)} L100,${toY(0)}`;
-		}
-		const lines = sessionHistories.map(hist => {
-			const final_ = hist[hist.length - 1];
-			const isBust = final_ < BET;
-			const isWin = final_ > START;
-			const d = hist
-				.map((v, i) => {
-					const x = (i / (maxLen - 1)) * 100;
-					return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${toY(v).toFixed(1)}`;
-				})
-				.join(' ');
-			return { d, isBust, isWin };
-		});
-		return { lines, startY, evLine };
 	});
 
 	$effect(() => {
@@ -641,6 +591,12 @@
 						{pl >= 0 ? '+' : ''}{money(pl)}
 					</div>
 				</div>
+				<div>
+					<div class="text-xs text-[#6b7a8e] uppercase tracking-wide">Expected</div>
+					<div class="font-mono text-2xl font-bold text-[#6b8aae]">
+						{expectedPL >= 0 ? '+' : ''}{money(expectedPL)}
+					</div>
+				</div>
 			</div>
 
 			<!-- Controls -->
@@ -724,6 +680,12 @@
 							<span class="font-mono font-bold ml-1">{money(lifetimeWagered)}</span>
 						</div>
 						<div>
+							<span class="text-[#6b7a8e]">Expected loss:</span>
+							<span class="font-mono font-bold ml-1 text-[#6b8aae]">
+								{money(lifetimeExpected)}
+							</span>
+						</div>
+						<div>
 							<span class="text-[#6b7a8e]">Net:</span>
 							<span class="font-mono font-bold ml-1"
 								class:text-[#ff8a8a]={lifetimeNet < 0}
@@ -743,81 +705,6 @@
 				<div class="mt-5 text-[#ff8a8a] font-headline text-xl">
 					YOU'RE BROKE. PERFECT PLAY, SAME RESULT.
 				</div>
-			{/if}
-		</div>
-
-		<!-- ── Multi-session proof ─────────────────────────── -->
-		<div use:inview class="fade-up mt-8 bj-box">
-			{#if !multiResult}
-				<div class="text-xs uppercase tracking-widest text-[#6b7a8e] mb-3">
-					Still not convinced?
-				</div>
-				<p class="text-sm mb-4 max-w-lg text-[#c8d0dc]">
-					Simulate 1,000 players. Each starts with $100, bets $5 per hand using perfect basic strategy for 200 hands.
-				</p>
-				<button onclick={runMultiSession} class="bj-btn-primary">
-					RUN 1,000 SESSIONS
-				</button>
-			{:else}
-				<div class="text-xs uppercase tracking-widest text-[#6b7a8e] mb-3">
-					1,000 sessions / 200 hands each / $5, basic strategy
-				</div>
-
-				{#if multiChartData}
-					<div class="w-full h-48 md:h-64 border border-[#1e3050] mb-1 bg-[#0a1220]">
-						<svg viewBox="0 0 100 100" preserveAspectRatio="none" class="w-full h-full">
-							<line x1="0" y1={multiChartData.startY} x2="100" y2={multiChartData.startY}
-								stroke="#1e3050" stroke-width="0.5" stroke-dasharray="2,2" />
-							{#each multiChartData.lines.filter(l => !l.isWin && !l.isBust) as line}
-								<path d={line.d} fill="none" stroke="#ff8a8a" stroke-opacity="0.15"
-									stroke-width="1" vector-effect="non-scaling-stroke" />
-							{/each}
-							{#each multiChartData.lines.filter(l => l.isBust) as line}
-								<path d={line.d} fill="none" stroke="#ff8a8a" stroke-opacity="0.35"
-									stroke-width="1" vector-effect="non-scaling-stroke" />
-							{/each}
-							{#each multiChartData.lines.filter(l => l.isWin) as line}
-								<path d={line.d} fill="none" stroke="#e8c66a" stroke-opacity="0.5"
-									stroke-width="1" vector-effect="non-scaling-stroke" />
-							{/each}
-							<path d={multiChartData.evLine} fill="none" stroke="#6b8aae" stroke-width="1.5"
-								stroke-dasharray="3,3" vector-effect="non-scaling-stroke" />
-						</svg>
-					</div>
-					<div class="flex justify-between text-xs text-[#6b7a8e] mb-5">
-						<span>Hand 1</span>
-						<span class="font-mono opacity-60">100 of 1,000 sessions shown</span>
-						<span>Hand 200</span>
-					</div>
-				{/if}
-
-				<div class="flex items-baseline gap-3 mb-4">
-					<div class="font-mono text-4xl md:text-5xl font-bold text-[#ff8a8a]">
-						{money(multiResult.avgFinal)}
-					</div>
-					<div class="text-sm text-[#6b7a8e]">
-						average final balance, out of $100
-					</div>
-				</div>
-
-				<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-[#c8d0dc] mb-5">
-					<div>
-						<span class="text-[#e8c66a] font-mono font-bold">{multiResult.wins}</span>
-						<span class="text-[#6b7a8e] ml-1">ended up</span>
-					</div>
-					<div>
-						<span class="text-[#ff8a8a] font-mono font-bold">{multiResult.losses + multiResult.busts}</span>
-						<span class="text-[#6b7a8e] ml-1">ended down</span>
-					</div>
-					<div>
-						<span class="text-[#ff8a8a] font-mono font-bold">{multiResult.busts}</span>
-						<span class="text-[#6b7a8e] ml-1">went broke</span>
-					</div>
-				</div>
-
-				<button onclick={runMultiSession} class="bj-btn">
-					RUN AGAIN
-				</button>
 			{/if}
 		</div>
 

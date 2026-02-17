@@ -3,6 +3,7 @@
 	import { stats } from '$lib/stores/simStats.svelte';
 	import { money, moneyWhole } from '$lib/utils/format';
 	import Ref from '$lib/components/Ref.svelte';
+	import { play } from '$lib/utils/audio';
 
 	let nonLotteryPlayed = $derived(stats.gamesPlayed.filter(id => id !== 'lottery'));
 	let hasNonLottery = $derived(nonLotteryPlayed.length > 0);
@@ -18,6 +19,7 @@
 
 	let copied = $state(false);
 	function copyUrl() {
+		play('click');
 		navigator.clipboard.writeText('https://youlo.se').then(() => {
 			copied = true;
 			setTimeout(() => copied = false, 2000);
@@ -35,7 +37,7 @@
 				</h2>
 			</div>
 
-			{#if stats.hasAnyData}
+			{#if stats.hasAnyData && primaryNet < 0}
 				<div use:inview class="fade-up mb-10 max-w-xl">
 					<div class="your-results">
 						<div class="primary-amount font-mono font-bold mb-2 {amtSize}"
@@ -97,16 +99,13 @@
 
 			<div use:inview class="fade-up pl-6 border-l-3 border-ink max-w-xl">
 				<p class="font-headline text-2xl md:text-3xl leading-tight mb-4">
-					FRIENDS DON'T LET FRIENDS GAMBLE.
+					NOBODY IS THE EXCEPTION.
 				</p>
-				<p class="text-base leading-relaxed mb-4">
-					If someone you care about is gambling regularly, they're not beating the odds
-					and neither is anyone else. The numbers on this page apply to everyone equally.
-				</p>
-				<p class="text-sm text-muted leading-relaxed">
-					You don't need to stage an intervention. You can just send them this page.
-					Sometimes seeing the numbers is enough. Sometimes it isn't,
-					and that's when professional help matters.
+				<p class="text-base leading-relaxed">
+					None of the numbers on this page change based on how smart you are,
+					how disciplined you are, or how much you study the game. They apply
+					to everyone at the table. If someone you know gambles, they might
+					not know that yet.
 				</p>
 			</div>
 		</div>

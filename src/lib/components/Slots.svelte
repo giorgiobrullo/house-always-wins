@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { inview } from '$lib/utils/intersection';
 	import { update as updateStats } from '$lib/stores/simStats.svelte';
-	import { spinSlotReel, slotPayout, simulateSlotSession, type SlotSymbol } from '$lib/utils/random';
+	import { spinSlotReel, slotPayout, type SlotSymbol } from '$lib/utils/random';
 	import { money } from '$lib/utils/format';
 	import { play } from '$lib/utils/audio';
 	import { countTo } from '$lib/utils/effects';
@@ -62,10 +62,6 @@
 	let lifetimeNet = $state(0);
 	let lifetimeSessionsUp = $state(0);
 
-	// Multi-session
-	let multiResult: { wins: number; losses: number; busts: number; avgFinal: number } | null = $state(null);
-	let sessionHistories: number[][] = $state([]);
-
 	let pl = $derived(balance - START);
 	let isUp = $derived(pl > 0);
 	let isBroke = $derived(balance < COST);
@@ -73,6 +69,7 @@
 	// Speed context
 	let realWorldMinutes = $derived(totalPulls > 0 ? (totalPulls / 600 * 60).toFixed(0) : '0');
 	let netPerHour = $derived(totalPulls > 0 ? (pl / (totalPulls / 600)).toFixed(0) : '0');
+	let lifetimeMinutes = $derived(lifetimePulls > 0 ? Math.round(lifetimePulls / 600 * 60) : 0);
 
 	function doPull(): number {
 		if (balance < COST) return 0;
@@ -205,6 +202,7 @@
 	}
 
 	function newSession() {
+		play('click');
 		const sessionNet = balance - START;
 		lifetimeNet += sessionNet;
 		lifetimeSessions++;
@@ -219,6 +217,7 @@
 	}
 
 	function resetAll() {
+		play('click');
 		balance = START;
 		history = [START];
 		lastPayout = 0;
@@ -231,27 +230,6 @@
 		lifetimeOut = 0;
 		lifetimeNet = 0;
 		lifetimeSessionsUp = 0;
-		multiResult = null;
-		sessionHistories = [];
-	}
-
-	function runMultiSession() {
-		const TOTAL = 1000;
-		const CHARTED = 100;
-		const PULLS = 1000;
-		const histories: number[][] = [];
-		let wins = 0, losses = 0, busts = 0, totalFinal = 0;
-		for (let s = 0; s < TOTAL; s++) {
-			const balances = simulateSlotSession(START, COST, PULLS);
-			const final_ = balances.length > 0 ? balances[balances.length - 1] : START;
-			if (s < CHARTED) histories.push([START, ...balances]);
-			if (final_ > START) wins++;
-			else if (final_ < COST) busts++;
-			else losses++;
-			totalFinal += final_;
-		}
-		multiResult = { wins, losses, busts, avgFinal: totalFinal / TOTAL };
-		sessionHistories = histories;
 	}
 
 	let commentary = $derived.by(() => {
@@ -317,45 +295,6 @@
 			const zeroY = toY(0);
 			return `M0,${toY(START)} L${zeroX},${zeroY} L100,${zeroY}`;
 		}
-	});
-
-	// Multi-session spaghetti chart
-	let multiChartData = $derived.by(() => {
-		if (sessionHistories.length === 0) return null;
-		const allBalances = sessionHistories.flat();
-		const max = Math.max(START * 2, ...allBalances);
-		const range = max;
-		const maxLen = Math.max(...sessionHistories.map(h => h.length));
-
-		const toY = (bal: number) => 100 - (bal / range) * 100;
-		const startY = toY(START);
-
-		const lossPerPull = COST * 0.11;
-		const zeroPull = START / lossPerPull;
-		let evLine: string;
-		if (maxLen - 1 <= zeroPull) {
-			evLine = `M0,${startY} L100,${toY(START - lossPerPull * (maxLen - 1))}`;
-		} else {
-			const zeroX = (zeroPull / (maxLen - 1)) * 100;
-			const zeroY = toY(0);
-			evLine = `M0,${startY} L${zeroX},${zeroY} L100,${zeroY}`;
-		}
-
-		const lines = sessionHistories.map(hist => {
-			const final_ = hist[hist.length - 1];
-			const isBust = final_ < COST;
-			const isWin = final_ > START;
-			const d = hist
-				.map((v, i) => {
-					const x = (i / (maxLen - 1)) * 100;
-					const y = toY(v);
-					return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-				})
-				.join(' ');
-			return { d, isBust, isWin };
-		});
-
-		return { lines, startY, evLine };
 	});
 
 	$effect(() => {
@@ -463,12 +402,18 @@
 				<div class="text-center">
 					<div class="text-[10px] text-[#9a8494] uppercase tracking-wide">Pulls</div>
 					<div class="font-mono text-lg font-bold text-[#e0d4dc]">{totalPulls}</div>
+					{#if totalPulls > 0}
+						<div class="text-[10px] text-[#9a8494] font-mono">~{realWorldMinutes} min</div>
+					{/if}
 				</div>
 				<div class="text-center">
 					<div class="text-[10px] text-[#9a8494] uppercase tracking-wide">P/L</div>
 					<div class="font-mono text-lg font-bold" class:text-[#ff6b6b]={pl < 0} class:text-[#ffd700]={pl > 0} class:text-[#e0d4dc]={pl === 0}>
 						{pl >= 0 ? '+' : ''}{money(pl)}
 					</div>
+					{#if totalPulls >= 20}
+						<div class="text-[10px] font-mono" class:text-[#ff6b6b]={pl < 0} class:text-[#ffd700]={pl >= 0}>{money(Number(netPerHour))}/hr</div>
+					{/if}
 				</div>
 			</div>
 
@@ -506,27 +451,6 @@
 				</div>
 			{/if}
 
-			<!-- Speed callout -->
-			{#if totalPulls > 0}
-				<div class="mb-4 px-4 md:px-6">
-					<div class="flex items-center justify-between mb-1.5">
-						<span class="text-xs text-[#9a8494] uppercase tracking-wide">Real-world speed</span>
-					</div>
-					<div class="flex flex-wrap gap-x-6 gap-y-1 text-sm text-[#c0b0ba]">
-						<div>
-							<span class="text-[#9a8494]">At 600 pulls/hr:</span>
-							<span class="font-mono font-bold ml-1">{realWorldMinutes} min</span>
-						</div>
-						{#if totalPulls >= 20}
-							<div>
-								<span class="text-[#9a8494]">Rate:</span>
-								<span class="font-mono font-bold ml-1" class:text-[#ff6b6b]={pl < 0} class:text-[#ffd700]={pl >= 0}>{money(Number(netPerHour))}/hr</span>
-							</div>
-						{/if}
-					</div>
-				</div>
-			{/if}
-
 			<!-- Balance Chart -->
 			{#if history.length > 2}
 				<div class="px-4 md:px-6 pb-1">
@@ -543,9 +467,9 @@
 						</svg>
 					</div>
 					<div class="flex justify-between text-xs text-[#7a5a6a] mb-4 mt-1">
-						<span>Pull 1</span>
+						<span>0 min</span>
 						<span class="font-mono opacity-60">dashed = expected value</span>
-						<span>Pull {totalPulls}</span>
+						<span>{realWorldMinutes} min</span>
 					</div>
 				</div>
 			{/if}
@@ -557,8 +481,8 @@
 						<div class="text-xs uppercase tracking-widest text-[#9a8494] mb-3">Lifetime (across {lifetimeSessions} session{lifetimeSessions === 1 ? '' : 's'})</div>
 						<div class="flex flex-wrap gap-6 text-sm text-[#c0b0ba]">
 							<div>
-								<span class="text-[#9a8494]">Put in:</span>
-								<span class="font-mono font-bold ml-1 text-[#e0d4dc]">{money(lifetimeIn)}</span>
+								<span class="text-[#9a8494]">Time:</span>
+								<span class="font-mono font-bold ml-1 text-[#e0d4dc]">{lifetimeMinutes >= 60 ? Math.floor(lifetimeMinutes / 60) + 'h ' + (lifetimeMinutes % 60) + 'm' : lifetimeMinutes + ' min'}</span>
 							</div>
 							<div>
 								<span class="text-[#9a8494]">Net:</span>
@@ -586,91 +510,12 @@
 			{/if}
 		</div>
 
-		<!-- 1000 sessions proof -->
-		<div use:inview class="fade-up mt-8 cabinet">
-			{#if !multiResult}
-				<div class="cabinet-header">
-					<div class="text-xs uppercase tracking-widest text-[#9a8494] mb-3">
-						Now multiply by speed
-					</div>
-					<p class="text-sm mb-4 max-w-lg text-[#c0b0ba]">
-						1,000 players. $100 each, $1 pulls, 1,000 spins. At real-world speed, that's about 100 minutes per player.
-					</p>
-					<button onclick={runMultiSession} class="slot-btn-pull">
-						RUN 1,000 SESSIONS
-					</button>
-				</div>
-			{:else}
-				<div class="cabinet-header" style="border-bottom: none;">
-					<div class="text-xs uppercase tracking-widest text-[#9a8494] mb-3">
-						1,000 sessions / 1,000 pulls each / $1 slots
-					</div>
-				</div>
-
-				{#if multiChartData}
-					<div class="px-4 md:px-6">
-						<div class="w-full h-48 md:h-64 border border-[#3d2a35] mb-1 bg-[#140c12]">
-							<svg viewBox="0 0 100 100" preserveAspectRatio="none" class="w-full h-full">
-								<line x1="0" y1={multiChartData.startY} x2="100" y2={multiChartData.startY}
-									stroke="#3d2a35" stroke-width="0.5" stroke-dasharray="2,2" />
-								{#each multiChartData.lines.filter(l => !l.isWin && !l.isBust) as line}
-									<path d={line.d} fill="none" stroke="#ff6b6b" stroke-opacity="0.15"
-										stroke-width="1" vector-effect="non-scaling-stroke" />
-								{/each}
-								{#each multiChartData.lines.filter(l => l.isBust) as line}
-									<path d={line.d} fill="none" stroke="#ff6b6b" stroke-opacity="0.35"
-										stroke-width="1" vector-effect="non-scaling-stroke" />
-								{/each}
-								{#each multiChartData.lines.filter(l => l.isWin) as line}
-									<path d={line.d} fill="none" stroke="#ffd700" stroke-opacity="0.5"
-										stroke-width="1" vector-effect="non-scaling-stroke" />
-								{/each}
-								<path d={multiChartData.evLine} fill="none" stroke="#9a8494" stroke-width="1.5"
-									stroke-dasharray="3,3" vector-effect="non-scaling-stroke" />
-							</svg>
-						</div>
-						<div class="flex justify-between text-xs text-[#7a5a6a] mb-5">
-							<span>Pull 1</span>
-							<span class="font-mono opacity-60">100 of 1,000 sessions shown</span>
-							<span>Pull 1,000</span>
-						</div>
-					</div>
-				{/if}
-
-				<div class="px-4 md:px-6 pb-4">
-					<div class="flex items-baseline gap-3 mb-4">
-						<div class="font-mono text-4xl md:text-5xl font-bold text-[#ff6b6b]">
-							{money(multiResult.avgFinal)}
-						</div>
-						<div class="text-sm text-[#9a8494]">
-							average final balance, out of $100
-						</div>
-					</div>
-
-					<div class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-[#c0b0ba] mb-5">
-						<div>
-							<span class="text-[#ffd700] font-mono font-bold">{multiResult.wins}</span>
-							<span class="text-[#9a8494] ml-1">ended up</span>
-						</div>
-						<div>
-							<span class="text-[#ff6b6b] font-mono font-bold">{multiResult.losses + multiResult.busts}</span>
-							<span class="text-[#9a8494] ml-1">ended down</span>
-						</div>
-						<div>
-							<span class="text-[#ff6b6b] font-mono font-bold">{multiResult.busts}</span>
-							<span class="text-[#9a8494] ml-1">went broke</span>
-						</div>
-					</div>
-
-					<div class="text-sm text-[#9a8494] mt-3">
-						At 600 pulls/hour, each player's 1,000 spins took about 100 minutes. A single afternoon.
-					</div>
-
-					<button onclick={runMultiSession} class="slot-btn">
-						RUN AGAIN
-					</button>
-				</div>
-			{/if}
+		<!-- Closing callout -->
+		<div use:inview class="fade-up mt-10 pl-6 border-l-3 border-loss">
+			<p class="font-headline text-xl md:text-2xl leading-tight">
+				THE MACHINE DOESN'T NEED TO CHEAT.<br />
+				IT JUST NEEDS TO BE FAST.
+			</p>
 		</div>
 	</div>
 </section>

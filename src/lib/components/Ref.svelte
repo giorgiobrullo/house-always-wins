@@ -76,12 +76,14 @@
 			let style = `position:fixed;top:${top}px;`;
 
 			if (isMobile) {
-				style += `left:12px;right:12px;`;
+				const arrowLeft = Math.max(12, Math.min(tr.left + tr.width / 2 - 12, vw - 36));
+				style += `left:12px;right:12px;--arrow-left:${arrowLeft}px;`;
 			} else {
 				let left = tr.left - 8;
 				if (left + pr.width > vw - 12) left = vw - pr.width - 12;
 				if (left < 12) left = 12;
-				style += `left:${left}px;max-width:${maxW}px;`;
+				const arrowLeft = tr.left + tr.width / 2 - left;
+				style += `left:${left}px;max-width:${maxW}px;--arrow-left:${arrowLeft}px;`;
 			}
 
 			posStyle = style;
@@ -216,7 +218,7 @@
 	.ref-arrow {
 		position: absolute;
 		top: -5px;
-		left: 14px;
+		left: var(--arrow-left, 14px);
 		width: 9px;
 		height: 9px;
 		background: var(--color-cream, #faf8f2);
