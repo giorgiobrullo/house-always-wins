@@ -13,6 +13,8 @@
 	import IconPlayerPlay from '@tabler/icons-svelte/icons/player-play';
 	import IconFastForward from '@tabler/icons-svelte/icons/player-track-next';
 
+	let { hideTitle = false }: { hideTitle?: boolean } = $props();
+
 	const BET = 5;
 	const START = 100;
 	const HOUSE_EDGE = 0.005;
@@ -357,12 +359,14 @@
 	<div class="max-w-4xl">
 
 		<!-- Title -->
+		{#if !hideTitle}
 		<div use:inview class="fade-up">
 			<h2 class="font-headline text-4xl md:text-6xl mb-2">BLACKJACK</h2>
 			<p class="text-muted text-sm uppercase tracking-widest mb-8">
 				The skill game. The house edge is still there.
 			</p>
 		</div>
+		{/if}
 
 		<!-- Prose -->
 		<div use:inview class="fade-up max-w-2xl mb-8">
@@ -736,8 +740,6 @@
 		</div>
 	</div>
 </section>
-
-<hr class="divider" />
 
 <style>
 	.fade-up {

@@ -198,6 +198,10 @@
 				</button>
 			</div>
 		</div>
+		<p class="credit">
+			Made by <a href="https://giorgiobrullo.dev" target="_blank" rel="noopener">Giorgio Brullo</a>.
+			For corrections or anything else, <a href="mailto:hey@youlo.se">hey@youlo.se</a>.
+		</p>
 	</div>
 </section>
 
@@ -308,5 +312,20 @@
 	.copy-btn:hover {
 		color: var(--color-ink);
 		border-color: var(--color-ink);
+	}
+
+	.credit {
+		margin-top: 1.5rem;
+		font-size: 0.6875rem;
+		color: var(--color-muted);
+	}
+	.credit a {
+		color: var(--color-muted);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+		transition: color 150ms;
+	}
+	.credit a:hover {
+		color: var(--color-ink);
 	}
 </style>

@@ -7,6 +7,8 @@
 	import IconRefresh from '@tabler/icons-svelte/icons/refresh';
 	import IconFastForward from '@tabler/icons-svelte/icons/player-track-next';
 
+	let { hideTitle = false }: { hideTitle?: boolean } = $props();
+
 	const BANKROLL = 1000;
 	const BET = 10;
 	const TABLE_MAX = 5000;
@@ -163,12 +165,14 @@
 
 <section class="px-5 py-16 md:px-10 md:py-24">
 	<div class="max-w-4xl">
+		{#if !hideTitle}
 		<div use:inview class="fade-up">
 			<h2 class="font-headline text-4xl md:text-6xl mb-2">THE MARTINGALE DELUSION</h2>
 			<p class="text-muted text-sm uppercase tracking-widest mb-8">
 				The strategy that turns small wins into total losses
 			</p>
 		</div>
+		{/if}
 
 		<div use:inview class="fade-up max-w-2xl mb-8">
 			<p class="text-base md:text-lg leading-relaxed mb-4">
@@ -411,8 +415,6 @@
 		</div>
 	</div>
 </section>
-
-<hr class="divider" />
 
 <style>
 	.fade-up {

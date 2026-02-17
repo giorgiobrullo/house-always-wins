@@ -4,6 +4,8 @@
 	import { simulateWalkAwayBatch, type WalkAwayResult } from '$lib/utils/random';
 	import { play } from '$lib/utils/audio';
 
+	let { hideTitle = false }: { hideTitle?: boolean } = $props();
+
 	const BANKROLL = 200;
 	const BET = 10;
 	const SESSIONS = 1000;
@@ -41,12 +43,14 @@
 <section class="px-5 py-16 md:px-10 md:py-24">
 	<div class="max-w-4xl">
 
+		{#if !hideTitle}
 		<div use:inview class="fade-up">
 			<h2 class="font-headline text-4xl md:text-6xl mb-2">THE EXIT STRATEGY</h2>
 			<p class="text-muted text-sm uppercase tracking-widest mb-8">
 				Why "quit while you're ahead" doesn't work
 			</p>
 		</div>
+		{/if}
 
 		<div use:inview class="fade-up max-w-2xl mb-10">
 			<p class="text-base md:text-lg leading-relaxed mb-4">
@@ -177,8 +181,6 @@
 
 	</div>
 </section>
-
-<hr class="divider" />
 
 <style>
 	.fade-up {
