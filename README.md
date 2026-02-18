@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="src/lib/assets/favicon.svg" alt="youlo.se" width="80" height="80">
+  <img src="src/lib/assets/readme-banner.svg" alt="THE HOUSE ALWAYS WINS" width="800">
 </p>
-
-<h1 align="center">THE HOUSE ALWAYS WINS</h1>
 
 <p align="center">
   <a href="https://kit.svelte.dev/"><img src="https://img.shields.io/badge/SvelteKit-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" alt="SvelteKit"></a>
