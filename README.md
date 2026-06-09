@@ -18,9 +18,9 @@
 
 ## About
 
-An interactive proof that gambling is a losing proposition. No opinions, no moralizing. Just simulations, math, and the exposed mechanics behind every major game type.
+An interactive proof that gambling is a losing proposition. Simulations, and the exposed mechanics behind every major game type.
 
-Each section lets you play, then shows you what the math already knew. Roulette, slots, scratch tickets, crash, sports betting, lottery, and the Martingale strategy. All simulated with real odds, ghost players, and population-scale statistics.
+Each section lets you play, then shows you what the math already knew. Roulette, slots, scratch tickets, crash, sports betting, lottery, and the Martingale strategy.
 
 ## Quick Start
 
